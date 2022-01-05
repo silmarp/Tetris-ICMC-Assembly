@@ -26,3 +26,7 @@ Para tal basta executar o comando no seu computador
 **./sim <arquivo montado (mif) > charmap.mif**
 
 e então testar as funcionalidades do programa
+
+### Atualização:
+- mudei o montador para a nova versão de linux, o antigo n estavá funcionando.
+
