@@ -1,10 +1,11 @@
-
+;Na funçao checaMovimentoObstaculo tem um call TelaFim, coloquei lá só pra testar
 jmp main
 
 aux: var #1 ; Variavel para movimentos
 PosPeca: var #1 ; Variavel para movimentos
 PosAnterior: var #1 ; Variavel para movimentos
 Obstaculo: var #1 ; Variavel para movimentos
+Score: var #1 ;variavel para placar
 
 Letra: var #1  ; Guarda a letra digitada
 
@@ -206,6 +207,7 @@ checaMovimento:
 	checaMovimentoObstaculo:
 		loadn r5, #1
 		store Obstaculo, r5
+		call TelaFim
 		jmp checaMovimentoPops
 		
 	checaMovimentoLivre:
@@ -286,6 +288,14 @@ LimpaTela:
 	
 TelaFim:
 
+ push r0
+ push r1 
+ push r2 
+ push r3 
+ push r4 
+ push r5
+ push r6
+ 
  call LimpaTela
 
  loadn r0, #44
@@ -307,6 +317,20 @@ TelaFim:
  loadn r1, #Msg5
  loadn r2, #0
  call PrintaFrase_2
+ 
+ load r0, Score
+ loadn r3, #48
+ add r0, r0, r3
+ loadn r1, #624
+ outchar r0, r1
+ 
+ pop r0 
+ pop r1 
+ pop r2 
+ pop r3
+ pop r4
+ pop r5
+ pop r6
  
  jmp QuerJogarDenovo
  
