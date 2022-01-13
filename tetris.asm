@@ -13,7 +13,7 @@ Score: var #1 ;variavel para placar
 Letra: var #1  ; Guarda a letra digitada
 
 PosGrid: var #1
-Grid: var #1040
+Grid: var #1080
 Peca: var #4 ;vetor que guarda a posição de cada integrante da peça de tetris são 4 no total
 Peca_Tipo: var #1 ;guarda o tipo da peça que são 13 possibilidades
 
@@ -106,7 +106,7 @@ loop_jogo:
 	; ____Game Logic____
 
         ; TO DO: checa e apaga linha completa
-        ; TO DO: checa game over 
+
         ; TO DO: testa giro valido
         ; TO DO: chama giro precionado == gira, não precionado n gira
 
@@ -115,6 +115,8 @@ loop_jogo:
 		call MovePeca_lado
         call Desce_peca
         call Checa_descida
+
+        ; TO DO: checa game over 
 
 
 		Chama_delay:
@@ -171,10 +173,7 @@ Desce_peca:
 	
 MovePeca_lado:
 
-	push r0 
-	push r1 
-	push r2
-	push r3
+
 	
     call Apaga_vetor_peca
 	
@@ -183,10 +182,7 @@ MovePeca_lado:
     call Printa_vetor_peca
     call Delay_Peca
 
-	pop r0 
-	pop r1 
-	pop r2
-	pop r3
+
 
 	rts 
 	
@@ -284,10 +280,23 @@ checaMovimento:
         cmp r4, r5
         jne checaMovimento_loop_border
     
-    ; garante que o movimento não ira atingir um obstaculo
-    ;;;;;;;  TO DO: criar o checa movimento de obstaculo
-
-
+    loadn r0, #Peca
+    loadn r4, #0 ; contador
+    loadn r5, #4 ; limite do contador para percorrer peça
+    loadn r6, #1
+    
+    checaMovimento_loop_border_2:
+        loadn r2, #Grid
+        loadi r1, r0
+        add r2, r2, r1
+        loadi r3, r2
+        cmp r3, r6
+        ceq dir_or_esq
+        inc r0
+        inc r4
+        cmp r4, r5
+        jne checaMovimento_loop_border_2
+        
 	pop r6
 	pop r5
 	pop r4 
@@ -297,6 +306,23 @@ checaMovimento:
 	pop r0
     pop fr
 	rts
+
+dir_or_esq:
+    push fr
+    push r0
+    push r1
+
+    load r0, Direita_ou_esquerda
+    loadn r1, #0
+
+    cmp r0, r1
+    ceq checaMovimento_incrementa_peca
+    cne checaMovimento_decrementa_peca
+    
+    pop fr
+    pop r0
+    pop r1
+    rts
 
 checaMovimento_decrementa_peca:
     push r0
@@ -376,27 +402,56 @@ Checa_descida:
     push r1
     push r2
     push r3
+    push r4
+    push r5
+
+
+    
     ;não passar da ultima linha
 
     loadn r0, #Peca
-    loadn r1, #40
-    loadn r2, #25
-    loadi r3, r0
+    loadn r2, #40
+    loadn r3, #1
+    loadn r4, #0 ; contador
+    loadn r5, #4
 
-    div r3, r3, r1
-    cmp r3, r2
-    jne Checa_descida_fim
+    Checa_decida_loop:
+        push r6
+        loadi r1, r0 ;pega posição da peca
+        loadn r6, #Grid ; inicia ponteiro grid
+        add r1,r1, r2 ; aumenta 40 (vai para linha de baixo)
+        add r6, r6, r1 ; coloca o ponteiro na posição correspondente
+        loadi r1, r6 ;coloca o calor correspondente no r1
+        pop r6
 
-    call Atualiza_grid_e_chama_nova_peca
-    call Inicia_peca
+        cmp r1, r3
+        jeq Decida_invalida
+
+        inc r4
+        inc r0
+        cmp r4, r5
+        jne Checa_decida_loop
     
-    Checa_descida_fim:
-        pop fr
-        pop r0
-        pop r1
-        pop r2
-        pop r3
-        rts
+    jmp Descida_valida
+
+    Decida_invalida:
+        call Atualiza_grid_e_chama_nova_peca
+        call Inicia_peca
+    
+
+    Descida_valida:
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+    pop r4
+    pop r5
+
+
+    rts
+
 
 Atualiza_grid_e_chama_nova_peca:
     push fr
@@ -514,7 +569,7 @@ Inicia_vetor_grid:      ;assinala o valor 0 para todos os elementos do vetor gri
 	loadn r0, #Grid
 	loadn r1, #1040
 	loadn r3, #0
-	loadn r4, #0 ;counter
+	loadn r4, #0 ;contador
 
 	grid_loop:
 		storei r0, r3
@@ -522,6 +577,16 @@ Inicia_vetor_grid:      ;assinala o valor 0 para todos os elementos do vetor gri
 		inc r4
 		cmp r4, r1
 		jne grid_loop
+
+    loadn r1, #1080
+	loadn r3, #1
+
+    grid_loop_2:
+		storei r0, r3
+		inc r0
+		inc r4
+		cmp r4, r1
+		jne grid_loop_2
 
 
 	pop fr
