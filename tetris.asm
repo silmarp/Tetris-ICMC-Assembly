@@ -2,16 +2,28 @@
 jmp main
 
 aux: var #1 ; Variavel para movimentos
-PosGrid: var #1        ;variavel para guardar a conversão de Pospeca para valor dentro do vetor Grid
 PosPeca: var #1 ; Variavel para movimentos
 PosAnterior: var #1 ; Variavel para movimentos
+Direita_ou_esquerda: var #1 ;variavel que guarda para onde a peça foi para ser usada na checagem de movimento valido
+                            ;0 => esquerda 1 => direita
+
 Obstaculo: var #1 ; Variavel para movimentos
 Score: var #1 ;variavel para placar
 
-Grid: var #1200 ;variavel que armazena o estado do grid 0 => sem obstaculo, 1 => com obstaculo
-Mov_validation: var #1 ;0 => movimento valido, 1 => movimento invalido encontrou obstaculo 
-
 Letra: var #1  ; Guarda a letra digitada
+
+PosGrid: var #1
+Grid: var #352
+Peca: var #4 ;vetor que guarda a posição de cada integrante da peça de tetris são 4 no total
+Peca_Tipo: var #1 ;guarda o tipo da peça que são 13 possibilidades
+
+; ====== TIPOS DE PEÇA ======= (variações == rotação das peças)
+;
+;0   | 1 |  2       |  3  |  4    | 5 + (3 variações) | 8 + (3 variações)
+; AA | A | A A A A  | A   |   A A | A                 |
+; AA | A |          | A A | A A   | A                 | A A A
+;    | A |          |   A |       | A A               |   A   
+;    | A |          |     |       |                   |
 
 Msg1: string "****    || TETRIS ICMC ||    ****"
 Msg3: string "PRESSIONE QUALQUER TECLA PARA COMECAR:"
@@ -30,9 +42,6 @@ main:
 
 	store PosPeca, r1    ; pos da peça = bit 180
 	store Obstaculo, r3
-
-	loadn r4, #0
-	store Mov_validation, r4
 	
 	loadn r0, #564
 	loadn r1, #Msg1    ;Mensagem inicial
@@ -60,8 +69,6 @@ main:
 	
 	call LimpaTela 
 	
-loop_jogo:
-	
 	loadn r1, #tela1Linha0	 ;Carrega o cenario do jogo
 	call Cor_Cenario
 	
@@ -73,16 +80,38 @@ loop_jogo:
  	loadn r2, #0
  	call PrintaFrase_2
 
-	call Inicia_vetor_grid
+
+
+
+    call Inicia_vetor_grid
+    call Inicia_peca
+
+loop_jogo:
+
+
+
+    ;chamar essa func para lançar nova peça
+	
+    ; TO DO: tipo peça assinalar numero aleatorio
+    ; TO DO: gera peça baseado em tipo peça iniciando ela com as posições adequadas
+    ; TO DO: entra no loop movimento
 		
 	loop_movimento:
 		
-		loadn r1, #50    ; movimenta a cada loop
+		loadn r1, #500    ; Variavel do delay, quanto maior r1, maior o delay
 		mod r1, r4, r1
 		cmp r1, r2          ;regra do delay
 		jne Chama_delay
 		
-		; ____Game Logic____
+	; ____Game Logic____
+
+        ; TO DO: checa e apaga linha completa
+        ; TO DO: checa game over 
+        ; TO DO: testa giro valido
+        ; TO DO: chama giro precionado == gira, não precionado n gira
+
+        ; TO DO: testa movimento valido valido == move peça, invalido == deixa peça onde esta e atualiza grid
+
 		call MovePeca
 
 
@@ -92,59 +121,21 @@ loop_jogo:
 			jmp loop_movimento
 	
 	halt
-
-;-------------------------------------------------------------- Rotina MovePeca
+	
+;======================= ROTINAS ====================
+;   ------------ rotina movimento --------------
 MovePeca:
 
 	push r0 
 	push r1 
 	push r2
 	push r3
-
-	; ao implementar o giro da peça colocar ele aqui pois deve ser feito antes de movimentar / checar validade de movimento
-	; e ao implementar o giro tambem ver se é possivel girar (lenth peça) <= (grid disponivel na linha)
-
-	push fr
-	call Testa_movimento_valido
-	load r0, Mov_validation
-	loadn r1, #1
-	cmp r0, r1 ; se for igual == movimento valido então continua, se não reseta posição e vai para a proxima peça
 	
-	jne Movimento_valido
-		loadn r0, #180
-		store PosPeca, r0
-		pop fr
-		;
-		;
-		;
-		;  criar atualização de obstaculos e colocar aqui
-		;
-		;
-		;
-		jmp MovePeca_pops
-		
-
-	Movimento_valido:
-		pop fr
+    call Apaga_vetor_peca
 	
-	call Direcoes
-	
-	load r0, PosAnterior
-	load r1, PosPeca
-
-	;---chega se o movimento é valido
-		
-	load r0, PosAnterior	
-	loadn r1, #' '
-	outchar r1, r0
-	
-	load r0, PosPeca
-	loadn r1, #'A'
-	outchar r1, r0
-	
-	jmp MovePeca_pops
-		
-MovePeca_pops:
+    call Direcoes ; atualiza a posição da peça
+    
+    call Printa_vetor_peca
 
 	pop r0 
 	pop r1 
@@ -164,51 +155,66 @@ Direcoes:  ;direcao para qual a peça vai
 	push r5
 	push r6
 	push r7
+
+    loadn r0, #Peca
 	
-	load r2, PosPeca
 	loadn r3, #40   ;define a descida da peça
 	
-	inchar r0
+	inchar r7
 	
-Esquerda:
+    Esquerda:
 
 		loadn r1, #'a'
-		cmp r1, r0
-	 	jne Direita		
-		dec r2 ;retira 1 para mover para esquerda
-		jmp fim_da_rotinaMov
+		cmp r1, r7
+	 	jne Direita	
+
+        loadn r4, #0
+        store Direita_ou_esquerda, r1 ;demarca que a peça foi para a esquerda
+
+		dec r3 ;retira 1 para mover para esquerda
+		jmp Desce
 		
-Direita:
+    Direita:
 
 		loadn r1, #'d'
-		cmp r1, r0
+		cmp r1, r7
 		jne Desce
-		inc r2              ;adiciona 1 para mover para direita
-		jmp fim_da_rotinaMov
-		
-Desce:
-	
-	add r2,r2,r3
-	call Delay_Peca
-	
-fim_da_rotinaMov:
 
-		store aux, r2       ;Guarda a posicao da peça    
-		load r1, aux        ;Transfere a info para o r1
-		call checaMovimento
+        loadn r4, #1
+        store Direita_ou_esquerda, r1 ;demarca que a peça foi para a direita
+
+		inc r3             ;adiciona 1 para mover para direita
+		jmp Desce
 		
-		load r0, Obstaculo
-		loadn r3, #1
-		load r2, PosPeca
-		
-		cmp r0, r3
-		jeq pops_FimdosMovimentos
-				
-		store PosPeca, r1
-		
-pops_FimdosMovimentos:       ;Apos finalizar as condicoes de movimentos, da pop
-			
-		store PosAnterior, r2
+    Desce:
+        ; assinala ao vetor peça suas novas posiçoes
+        loadi r2, r0
+        add r2, r2, r3
+        storei r0, r2
+        
+        inc r0
+
+        loadi r2, r0
+        add r2, r2, r3
+        storei r0, r2
+         
+        inc r0
+        
+        loadi r2, r0
+        add r2, r2, r3
+        storei r0, r2
+        
+        inc r0
+        
+        loadi r2, r0
+        add r2, r2, r3
+        storei r0, r2
+
+        call checaMovimento ; checa se o movimento é valido 
+                            ; se não desfaz o movimento
+
+	    call Delay_Peca
+
 		pop r7
 		pop r6
 		pop r5
@@ -220,68 +226,186 @@ pops_FimdosMovimentos:       ;Apos finalizar as condicoes de movimentos, da pop
 		pop fr
 		
 		rts
-;-------------------------------------------------------------- Fim da rotina MovePeca
 
-;-------------------------------------------------------------- Rotina Testa_movimento_valido
-Testa_movimento_valido: ;Regras:     - Peça não deve sair do grid
-	push fr             ;            - Ao chegar na base do grid a peça deve parar e ficar
-	push r0             ;            - Ao encontrar um obstaculo a peça deve parar
-	push r1
-	push r2				;            atualização do movimento ainda não foi feita, por isso usaremos PosPeça e somaremos as posições em vez de usar apenas PosPeça
-	push r3
-	push r4
+checaMovimento:
+    ;garante que a peça não esta na borda do grid
+    push fr
+	push r0 ; tela0linha0
+	push r1 ; posicao
+	push r2
+	push r3 ; espaço
+	push r4 ; 
+	push r5 ;
+	push r6 ;
 
-	loadn r0, #0        ;            Validade do movimento, inicialmente 0, ou seja valido
+    loadn r0, #Peca
+    loadn r4, #0 ; contador
+    loadn r5, #4 ; limite do contador para percorrer peça
+    loadn r6, #40
 
-	; testa se esta na ultima linha do grid
-	load r1, PosPeca
-	loadn r2, #40
-	loadn r3, #25
-	div r2, r1, r2
-	cmp r2, r3
-	jne Ainda_valido
-		loadn r0, #1
-		jmp Testa_movimento_valido_fim_da_rotina ;   Caso seja invalido faz r0 = 1 e chama fim da rotina 
+    checaMovimento_loop_border:
+        loadi r1, r0
+        loadn r2, #11
+        loadn r3, #28
 
-	Ainda_valido: ;testar se não tem obstaculo
-	
-	call Converte_Pospeca_Posgrid
+        mod r1, r1, r6
 
-	loadn r1, #Grid ;declara ponteiro para vetor grid
-	load r2, PosGrid
-	loadn r4, #16 ; ir para a linha de baixo
-	add r2, r2, r4
-	loadn r3, #0 ; contador
-	
-	aumenta_grid:
-		inc r1
-		inc r3
-		cmp r3, r2
-		jne aumenta_grid
+        cmp r1, r2
+        ceq checaMovimento_incrementa_peca
 
+        cmp r1,r3
+        ceq checaMovimento_decrementa_peca
 
-	loadi r3, r1       ;r3 é o ESTADO do bloco do grid logo a baixo ao que o nosso bloco esta
-
-	loadn r4, #1
-	cmp r3, r4
-	jne Testa_movimento_valido_fim_da_rotina
-		loadn r0, #1
-		jmp Testa_movimento_valido_fim_da_rotina ;   Caso seja invalido faz r0 = 1 e chama fim da rotina 
-
-	jmp Testa_movimento_valido_fim_da_rotina
+        inc r0
+        inc r4
+        cmp r4, r5
+        jne checaMovimento_loop_border
+    
+    ; garante que o movimento não ira atingir um obstaculo
+    ;;;;;;;  TO DO: criar o checa movimento de obstaculo
 
 
-Testa_movimento_valido_fim_da_rotina:
-	store Mov_validation, r0
-	pop fr 
-	pop r0
-	pop r1 
-	pop r2
+	pop r6
+	pop r5
+	pop r4 
 	pop r3
-	pop r4
-
+	pop r2
+	pop r1
+	pop r0
+    pop fr
 	rts
-;-------------------------------------------------------------- Fim da rotina Testa_movimento_valido
+
+checaMovimento_decrementa_peca:
+    push r0
+    push r1
+    push r2
+
+    loadn r0, #Peca
+
+    loadi r2, r0
+    dec r2
+    storei r0, r2
+    
+    inc r0
+
+    loadi r2, r0
+    dec r2
+    storei r0, r2
+     
+    inc r0
+    
+    loadi r2, r0
+    dec r2
+    storei r0, r2
+    
+    inc r0
+    
+    loadi r2, r0
+    dec r2
+    storei r0, r2
+
+    pop r0
+    pop r1
+    pop r2
+    rts
+
+
+checaMovimento_incrementa_peca:
+    push r0
+    push r1
+    push r2
+
+    loadn r0, #Peca
+
+    loadi r2, r0
+    inc r2
+    storei r0, r2
+    
+    inc r0
+
+    loadi r2, r0
+    inc r2
+    storei r0, r2
+     
+    inc r0
+    
+    loadi r2, r0
+    inc r2
+    storei r0, r2
+    
+    inc r0
+    
+    loadi r2, r0
+    inc r2
+    storei r0, r2
+
+    pop r0
+    pop r1
+    pop r2
+    rts
+
+
+;   ------------ Fim rotina movimento -------------
+
+;========================= UTILS ==================
+;   ----------------- manipulação de vetor -----------
+Printa_vetor_peca: ; printa o vetor peça na posição adequada na tela
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+    push r4
+
+    loadn r0, #Peca
+    loadn r1, #4
+    loadn r2, #0 ; contador para as 4 unidades da peça
+    loadn r4, #'A'
+
+    Printa_vetor_Peca_loop:
+        loadi r3, r0
+        outchar r4, r3
+        inc r0
+        inc r2
+        cmp r2, r1
+        jne Printa_vetor_Peca_loop
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+    pop r4
+    rts
+
+Apaga_vetor_peca: ; printa o vetor peça na posição adequada na tela
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+    push r4
+
+    loadn r0, #Peca
+    loadn r1, #4
+    loadn r2, #0 ; contador para as 4 unidades da peça
+    loadn r4, #' '
+
+    Apaga_vetor_Peca_loop:
+        loadi r3, r0
+        outchar r4, r3
+        inc r0
+        inc r2
+        cmp r2, r1
+        jne Apaga_vetor_Peca_loop
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+    pop r4
+    rts
 
 
 Converte_Pospeca_Posgrid:
@@ -318,59 +442,74 @@ Converte_Pospeca_Posgrid:
 	pop r1
 	pop r2
 	pop r3
+Inicia_vetor_grid:      ;assinala o valor 0 para todos os elementos do vetor grid
+				        ; 0 == não há obstaculo
+	push fr
+	push r0
+	push r1
+	push r3
+	push r4 ;counter
+
+	loadn r0, #Grid
+	loadn r1, #352
+	loadn r3, #0
+	loadn r4, #0 ;counter
+
+	grid_loop:
+		storei r0, r3
+		inc r0
+		inc r4
+		cmp r4, r1
+		jne grid_loop
 
 
-checaMovimento:
+	pop fr
+	pop r0
+	pop r1
+	pop r3
+	pop r4
 
-	push r0 ; tela0linha0
-	push r1 ; posicao
-	push r2
-	push r3 ; espaço
-	push r4 ; 
-	push r5 ;
-	push r6 ;
-	
-	loadn r6, #40
-	loadn r3, #' '
-	loadn r0, #tela3Linha0
-	div r4, r1, r6 ;  div = pos/40
-	
-	add r5, r1, r4	; 
-	add r5, r5, r0	
-	loadi r4, r5
-	
-	cmp r3, r4     
-	jne checaMovimentoObstaculo	
-	
-	jmp checaMovimentoLivre
-		
-	checaMovimentoObstaculo:
-		loadn r5, #1
-		store Obstaculo, r5
-		call TelaFim
-		jmp checaMovimentoPops
-		
-	checaMovimentoLivre:
-		loadn r5, #0
-		store Obstaculo, r5
-		jmp checaMovimentoPops
-		
-		;if(posPeca == posFinal){
-			;call LancaNovaPeca
-		;}
-	
-checaMovimentoPops:
-		pop r6
-		pop r5
-		pop r4 
-		pop r3
-		pop r2
-		pop r1
-		pop r0
-		rts
+	rts
+
+Inicia_peca:
+	push fr
+	push r0
+	push r1
+
+    ; Usar a solução, no começo passo o valor inicial apenas para o primeiro elemento,
+    ; com base nisso temos ""funções construtoras"" que usam esse 1 elemento para fazer o vetor
+    ; assim posso reusar as funçoes construtoras para a hora de girar a peça
+
+    ;valor inicial da peça é 180
+
+    ; no futuro fazer um especifico para cada peça
+
+	loadn r0, #Peca
+	loadn r1, #180
+
+    storei r0, r1
+    inc r0
+    inc r1
+
+    storei r0, r1
+    inc r0
+    inc r1
+
+    storei r0, r1
+    inc r0
+    inc r1
+
+    storei r0, r1
+
+	pop fr
+	pop r0
+	pop r1
+
+	rts
 
 
-	
+;   --------------- Fim manipulação de vetor ------------
+
 Delay:
 	push r0 
 	push r2 
@@ -408,39 +547,9 @@ Delay_Peca:
 	pop r0
 	
 	rts
+	
 
-Inicia_vetor_grid:      ;assinala o valor 0 para todos os elementos do vetor grid
-				        ; 0 == não há obstaculo
-	push fr
-	push r0
-	push r1
-	push r3
-	push r4 ;counter
-
-	loadn r0, #Grid
-	loadn r1, #352
-	loadn r3, #0
-	loadn r4, #0 ;counter
-
-	grid_loop:
-		storei r0, r3
-		inc r0
-		inc r4
-		cmp r4, r1
-		jne grid_loop
-
-
-	pop fr
-	pop r0
-	pop r1
-	pop r3
-	pop r4
-
-	rts
-
-
-
-
+;========================= TELAS ==================
 LimpaTela:
 	push fr		        ;protege o registrador de flags
 	push r0
