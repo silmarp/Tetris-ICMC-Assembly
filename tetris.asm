@@ -13,7 +13,7 @@ Score: var #1 ;variavel para placar
 Letra: var #1  ; Guarda a letra digitada
 
 PosGrid: var #1
-Grid: var #352
+Grid: var #1040
 Peca: var #4 ;vetor que guarda a posição de cada integrante da peça de tetris são 4 no total
 Peca_Tipo: var #1 ;guarda o tipo da peça que são 13 possibilidades
 
@@ -112,7 +112,9 @@ loop_jogo:
 
         ; TO DO: testa movimento valido valido == move peça, invalido == deixa peça onde esta e atualiza grid
 
-		call MovePeca
+		call MovePeca_lado
+        call Desce_peca
+        call Checa_descida
 
 
 		Chama_delay:
@@ -122,9 +124,52 @@ loop_jogo:
 	
 	halt
 	
-;======================= ROTINAS ====================
-;   ------------ rotina movimento --------------
-MovePeca:
+;======================= CORE ====================
+;   ------------ movimento --------------
+Desce_peca:
+
+	push r0 
+	push r1 
+	push r2
+	push r3
+	
+    call Apaga_vetor_peca
+
+	; soma 40 na posição de cada elemento do vetor peça para movelo 1 unidade para baixo
+    loadn r0, #Peca
+    loadn r1, #40
+    
+    loadi r2, r0
+    add r2, r2, r1
+    storei r0, r2
+    inc r0
+
+    loadi r2, r0
+    add r2, r2, r1
+    storei r0, r2
+    inc r0
+
+    loadi r2, r0
+    add r2, r2, r1
+    storei r0, r2
+    inc r0
+
+    loadi r2, r0
+    add r2, r2, r1
+    storei r0, r2
+    
+    call Printa_vetor_peca
+
+    call Delay_Peca
+
+	pop r0 
+	pop r1 
+	pop r2
+	pop r3
+
+	rts 
+	
+MovePeca_lado:
 
 	push r0 
 	push r1 
@@ -136,6 +181,7 @@ MovePeca:
     call Direcoes ; atualiza a posição da peça
     
     call Printa_vetor_peca
+    call Delay_Peca
 
 	pop r0 
 	pop r1 
@@ -158,7 +204,6 @@ Direcoes:  ;direcao para qual a peça vai
 
     loadn r0, #Peca
 	
-	loadn r3, #40   ;define a descida da peça
 	
 	inchar r7
 	
@@ -171,49 +216,27 @@ Direcoes:  ;direcao para qual a peça vai
         loadn r4, #0
         store Direita_ou_esquerda, r1 ;demarca que a peça foi para a esquerda
 
-		dec r3 ;retira 1 para mover para esquerda
-		jmp Desce
+		call checaMovimento_decrementa_peca
+		jmp Finaliza_lado
 		
     Direita:
 
 		loadn r1, #'d'
 		cmp r1, r7
-		jne Desce
+		jne Finaliza_lado
 
         loadn r4, #1
         store Direita_ou_esquerda, r1 ;demarca que a peça foi para a direita
 
-		inc r3             ;adiciona 1 para mover para direita
-		jmp Desce
+		call checaMovimento_incrementa_peca
+		jmp Finaliza_lado
 		
-    Desce:
+    Finaliza_lado:
         ; assinala ao vetor peça suas novas posiçoes
-        loadi r2, r0
-        add r2, r2, r3
-        storei r0, r2
-        
-        inc r0
-
-        loadi r2, r0
-        add r2, r2, r3
-        storei r0, r2
-         
-        inc r0
-        
-        loadi r2, r0
-        add r2, r2, r3
-        storei r0, r2
-        
-        inc r0
-        
-        loadi r2, r0
-        add r2, r2, r3
-        storei r0, r2
 
         call checaMovimento ; checa se o movimento é valido 
                             ; se não desfaz o movimento
 
-	    call Delay_Peca
 
 		pop r7
 		pop r6
@@ -345,7 +368,77 @@ checaMovimento_incrementa_peca:
     rts
 
 
-;   ------------ Fim rotina movimento -------------
+;   ------------ Fim movimento -------------
+;   ------------ Obstaculos --------------
+Checa_descida:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+    ;não passar da ultima linha
+
+    loadn r0, #Peca
+    loadn r1, #40
+    loadn r2, #25
+    loadi r3, r0
+
+    div r3, r3, r1
+    cmp r3, r2
+    jne Checa_descida_fim
+
+    call Atualiza_grid_e_chama_nova_peca
+    call Inicia_peca
+    
+    Checa_descida_fim:
+        pop fr
+        pop r0
+        pop r1
+        pop r2
+        pop r3
+        rts
+
+Atualiza_grid_e_chama_nova_peca:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+    push r4
+    push r7
+
+
+    loadn r0, #Peca
+    loadn r2, #4
+    loadn r3, #0 ;contador
+    loadn r4, #1
+
+    
+
+    Atualiza_grid_e_chama_nova_peca_loop:
+        loadi r1, r0 
+        loadn r7, #Grid
+        add r7, r7, r1
+        
+        storei r7, r4
+
+
+        inc r0
+        inc r3
+        cmp r2, r3
+        jne Atualiza_grid_e_chama_nova_peca_loop
+ 
+    
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+    pop r4
+    pop r7
+    rts
+
+;   ------------- Fim Obstaculos ---------
 
 ;========================= UTILS ==================
 ;   ----------------- manipulação de vetor -----------
@@ -408,40 +501,8 @@ Apaga_vetor_peca: ; printa o vetor peça na posição adequada na tela
     rts
 
 
-Converte_Pospeca_Posgrid:
-	;grid 0 -> 251  
-	push fr
-	push r0 		;inicialmente PosPeca, depois armazena valor a ser alterado no grid
-	push r1 		;grid linha 
-	push r2 		;grid coluna
-	push r3 		;auxiliar para os calculos
 
-	load r0, PosPeca
 
-	;calculando valor grid linha === (PosPeca / 40) - 4
-	loadn r3, #40
-	div r1, r0, r3
-	loadn r3, #4
-	sub r1, r1, r3
-	
-	;calculando valor grid linha === (PosPeca mod 40) - 13
-	loadn r3, #40
-	mod r2, r0, r3
-	loadn r3, #13
-	sub r2, r2, r3
-
-	;Calculando posicao no grid === (Linha * 16) + col
-	loadn r3, #16
-	mul r0, r1, r3
-	add r0, r0, r2
-
-	store PosGrid, r0 
-
-	pop fr
-	pop r0
-	pop r1
-	pop r2
-	pop r3
 Inicia_vetor_grid:      ;assinala o valor 0 para todos os elementos do vetor grid
 				        ; 0 == não há obstaculo
 	push fr
@@ -451,7 +512,7 @@ Inicia_vetor_grid:      ;assinala o valor 0 para todos os elementos do vetor gri
 	push r4 ;counter
 
 	loadn r0, #Grid
-	loadn r1, #352
+	loadn r1, #1040
 	loadn r3, #0
 	loadn r4, #0 ;counter
 
@@ -471,7 +532,7 @@ Inicia_vetor_grid:      ;assinala o valor 0 para todos os elementos do vetor gri
 
 	rts
 
-Inicia_peca:
+Inicia_peca: ; inicia / chama nova peça
 	push fr
 	push r0
 	push r1
