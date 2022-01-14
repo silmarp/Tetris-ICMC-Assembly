@@ -1,9 +1,7 @@
-;Na funçao checaMovimentoObstaculo tem um call TelaFim, coloquei lá só pra testar
+
 jmp main
 
-aux: var #1 ; Variavel para movimentos
 PosPeca: var #1 ; Variavel para movimentos
-PosAnterior: var #1 ; Variavel para movimentos
 Direita_ou_esquerda: var #1 ;variavel que guarda para onde a peça foi para ser usada na checagem de movimento valido
                             ;0 => esquerda 1 => direita
 
@@ -108,14 +106,16 @@ loop_jogo:
 
         ; TO DO: checa e apaga linha completa aumenta pontos 16
 
-        ; TO DO: testa giro valido
 
+        inchar r7
+        store Letra, r7
 
-        ; TO DO: testa movimento valido valido == move peça, invalido == deixa peça onde esta e atualiza grid
-        
-        
-        call Girar_peca
-		call MovePeca_lado
+        loadn r0, #' ' ; espaço == gira peça
+        cmp r7, r0
+        ceq Girar_peca
+
+        call MovePeca_lado
+
         call Desce_peca
         call Checa_descida
 
@@ -204,7 +204,7 @@ Direcoes:  ;direcao para qual a peça vai
     loadn r0, #Peca
 	
 	
-	inchar r7
+	load r7, Letra
 	
     Esquerda:
 
@@ -712,7 +712,7 @@ Girar_peca:
 
 
     loadn r4, #' '
-    inchar r5
+    load r5, Letra
 
     cmp r4, r5
     jne Girar_peca_end ; se não for igual ele finaliza a função
@@ -723,6 +723,32 @@ Girar_peca:
     call Apaga_vetor_peca
 
     call Gira_peca_efetivo
+
+    loadn r0, #Peca
+    loadn r4, #0 ; contador
+    loadn r5, #4 ; limite do contador para percorrer peça
+    loadn r3, #40
+
+    checaGiro_loop_1:
+        loadi r1, r0
+        loadn r2, #11
+
+        mod r1, r1, r3
+
+        cmp r1, r2
+        ceq Armazena_peca_vetor_auxiliar_reverte
+        jeq Girar_peca_end
+
+        loadn r2, #28
+
+        cmp r1,r2
+        ceq Armazena_peca_vetor_auxiliar_reverte
+        jeq Girar_peca_end
+
+        inc r0
+        inc r4
+        cmp r4, r5
+        jne checaGiro_loop_1
 
 
     loadn r0, #Peca
