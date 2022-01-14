@@ -16,6 +16,17 @@ Peca: var #4 ;vetor que guarda a posição de cada integrante da peça de tetris
 Peca_Tipo: var #1 ;guarda o tipo da peça que são 13 possibilidades
 Vetor_peca_aux: var #4 ;usado para averiguar se uma rotação é valida
 
+;variaveis auxiliares para saber posicao preenchivel da tela e do grid 
+PosInicialApagarTela: var #1
+PosInicialApagarGrid: var #1
+PosInicialApagarGridMaximo: var #1
+PosMaximoApagarTela: var #1
+
+PosInicialApagarTelaFixa: var #1
+PosInicialApagarGridFixa: var #1
+PosInicialApagarGridMaximoFixa: var #1
+PosMaximoApagarTelaFixa: var #1
+
 ; ====== TIPOS DE PEÇA ======= (variações == rotação das peças)
 ;
 ;0   | 1 |  2       |  3  |  4    | 5 + (3 variações) | 9 + (3 variações)
@@ -1512,6 +1523,333 @@ Delay_Peca:
 	pop r0
 	
 	rts
+    
+ApagaPosicaoTela:
+    push r0
+    push r1
+    
+    loadn r1, #' '
+    outchar r1, r2
+    
+    pop r1
+    pop r0
+    rts
+    
+ApagaLinhaTela:
+
+    push r1
+    push r2
+    
+    load r2, PosInicialApagarTela
+    load r1, PosMaximoApagarTela
+    
+    ApagaPosicaoTelaLoop:
+
+    call ApagaPosicaoTela
+    
+        inc r2
+        cmp r1, r2
+        jne ApagaPosicaoTelaLoop
+    
+    pop r2
+    pop r1
+    
+    rts
+    
+VerificaTodasLinhasPreenchidas:
+    
+    push r6
+    push r7
+    push r5
+    push r4
+    push r3
+    push r1
+    push r0
+    
+    
+    
+    
+    load r2, PosInicialApagarTelaFixa
+    load r1, PosInicialApagarTela
+    
+    loadn r0, #880
+    sub r2, r2, r0
+    
+    
+    SubtraiPosicoes:
+    loadn r0, #40
+    call VerificaLinhaPreenchida
+    
+    load r1, PosInicialApagarGrid
+    sub r1, r1, r0
+    store PosInicialApagarGrid, r1
+    
+    load r1, PosInicialApagarGridMaximo
+    sub r1, r1, r0
+    store PosInicialApagarGridMaximo, r1
+    
+    load r1, PosMaximoApagarTela
+    sub r1, r1, r0
+    store PosMaximoApagarTela, r1
+    
+    load r1, PosInicialApagarTela
+    sub r1, r1, r0
+    store PosInicialApagarTela, r1
+    
+    cmp r2, r1
+    cne SubtraiPosicoes
+    
+    
+    VerificaTodasLinhasPreenchidasReturn:
+    
+    loadn r0, #880
+    add r2, r2, r0
+    
+    ;AtualizaGridTelaLoop:
+    
+    ;call VerificaAbaixoGrid
+    ;call VerificaAbaixoTela
+    
+    ;load r1, PosInicialApagarTela
+    
+    ;cmp r1, r2
+        ;jne AtualizaGridTelaLoop
+    
+    ;;retorna valores para iniciais
+    load r0, PosInicialApagarGridFixa
+    store PosInicialApagarGrid, r0
+    
+    load r0, PosInicialApagarTelaFixa
+    store PosInicialApagarTela, r0
+    
+    load r0, PosInicialApagarGridMaximoFixa
+    store PosInicialApagarGridMaximo, r0
+    
+    load r0, PosMaximoApagarTelaFixa
+    store PosMaximoApagarTela, r0
+    
+    
+    pop r0
+    pop r1
+    pop r3
+    pop r4
+    pop r5
+    pop r7
+    pop r6
+    
+    rts
+    
+VerificaAbaixoGrid:
+
+    push fr
+    push r0
+    push r2
+    push r3
+    push r1
+    push r4
+    push r5
+    
+    load r0, PosInicialApagarGrid
+    load r2, PosInicialApagarGridMaximo
+    loadn r1, #40
+    loadn r3, #0
+    
+    add r4, r0, r2
+
+    AtualizaGridLinhaSuperior:
+            
+        loadi r5, r4
+        cmp r5, r3
+        jeq CampoNVazioAbaixo
+        
+        storei r4, r3
+        
+        CampoNVazioAbaixo:
+        inc r0
+        inc r4
+        cmp r2, r0
+        jne AtualizaGridZeraLinha
+    
+    add r0, r0, r3
+    store PosInicialApagarGrid, r0
+    
+    pop r5
+    pop r4
+    pop r1
+    pop r3
+    pop r2
+    pop r0
+    pop fr
+    
+    rts
+    
+VerificaAbaixoTela:
+
+    push fr
+    push r0
+    push r2
+    push r3
+    push r1
+    push r4
+    push r5
+    
+    load r0, PosInicialApagarTela
+    load r2, PosMaximoApagarTela
+    
+    loadn r1, #40
+    loadn r3, #'A'
+    loadn r7, #' '
+    
+    add r4, r0, r2
+
+    AtualizaTelaLinhaSuperior:
+            
+        loadi r5, r4
+        cmp r5, r3
+        jeq TelaNVazioAbaixo
+        
+        outchar r4, r3
+        outchar r0, r7
+        
+        TelaNVazioAbaixo:
+        inc r0
+        inc r4
+        cmp r2, r0
+        jne AtualizaTelaLinhaSuperior
+    
+    add r0, r0, r3
+    store PosInicialApagarTela, r0
+    
+    pop r5
+    pop r4
+    pop r1
+    pop r3
+    pop r2
+    pop r0
+    pop fr
+    
+    rts
+    
+    
+VerificaLinhaPreenchida:
+
+    push r6
+    push r7
+    push r5
+    push r4
+    push r3
+    push r0
+    
+    load r7, PosInicialApagarGrid
+    load r3, PosInicialApagarGrid
+    load r6, PosInicialApagarGridMaximo
+    
+    
+    VerificaLinhaPreenchidaLoop:
+    loadn r5, #1
+    inc r3
+    
+    cmp r3, r6
+    jeq FimVerificaLinhaPreenchida
+    
+    
+    loadi r4, r3
+    
+    cmp r4, r5
+        jeq VerificaLinhaPreenchidaLoop
+    
+    cmp r4, r5
+        jne FimVerificaLinhaPreenchida
+    
+    
+    cmp r3, r6
+        jne VerificaLinhaPreenchida
+    
+    
+    FimVerificaLinhaPreenchida:
+    cmp r4, r5
+        jne FimVerificaLinhaPreenchidaNMudanca
+    
+    ceq ApagaLinhaTela
+    ceq ApagaLinhaDoGrid
+
+    FimVerificaLinhaPreenchidaNMudanca:
+    pop r0
+    pop r3
+    pop r4
+    pop r5
+    pop r7
+    pop r6
+    
+    rts
+    
+
+
+ApagaLinhaDoGrid:
+
+    push fr
+    push r0
+    push r2
+    push r3
+
+
+    load r0, PosInicialApagarGrid
+    load r2, PosInicialApagarGridMaximo
+    loadn r3, #0
+
+    AtualizaGridZeraLinha:
+            
+        storei r0, r3
+
+        inc r0
+        cmp r2, r0
+        jne AtualizaGridZeraLinha
+    
+    
+    pop r3
+    pop r2
+    pop r0
+    pop fr
+    
+    rts
+    
+SavePosicoesIniciaisTelaGrid:
+
+    push fr
+    push r7
+    push r6
+    push r5
+
+    loadn r6, #Grid
+    
+    loadn r5, #8
+    loadn r7, #1004
+    
+    add r7, r7, r6
+    store PosInicialApagarTela, r7
+    store PosInicialApagarTelaFixa, r7
+    
+    add r5, r5, r7
+    store PosInicialApagarGrid, r5
+    store PosInicialApagarGridFixa, r5
+    
+    loadn r5, #8
+    loadn r7, #1020
+    
+    add r7, r7, r6
+    store PosMaximoApagarTela, r7
+    store PosMaximoApagarTelaFixa, r7
+    
+    add r5, r5, r7
+    store PosInicialApagarGridMaximo, r5
+    store PosInicialApagarGridMaximoFixa, r5
+    
+    
+    pop r5
+    pop r6
+    pop r7
+    pop fr
+    rts
 	
 
 ;========================= TELAS ==================
