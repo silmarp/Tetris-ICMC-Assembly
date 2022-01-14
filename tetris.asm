@@ -16,10 +16,11 @@ PosGrid: var #1
 Grid: var #1080
 Peca: var #4 ;vetor que guarda a posição de cada integrante da peça de tetris são 4 no total
 Peca_Tipo: var #1 ;guarda o tipo da peça que são 13 possibilidades
+Vetor_peca_aux: var #4 ;usado para averiguar se uma rotação é valida
 
 ; ====== TIPOS DE PEÇA ======= (variações == rotação das peças)
 ;
-;0   | 1 |  2       |  3  |  4    | 5 + (3 variações) | 8 + (3 variações)
+;0   | 1 |  2       |  3  |  4    | 5 + (3 variações) | 9 + (3 variações)
 ; AA | A | A A A A  | A   |   A A | A                 |
 ; AA | A |          | A A | A A   | A                 | A A A
 ;    | A |          |   A |       | A A               |   A   
@@ -105,13 +106,15 @@ loop_jogo:
 		
 	; ____Game Logic____
 
-        ; TO DO: checa e apaga linha completa
+        ; TO DO: checa e apaga linha completa aumenta pontos 16
 
         ; TO DO: testa giro valido
-        ; TO DO: chama giro precionado == gira, não precionado n gira
+
 
         ; TO DO: testa movimento valido valido == move peça, invalido == deixa peça onde esta e atualiza grid
-
+        
+        
+        call Girar_peca
 		call MovePeca_lado
         call Desce_peca
         call Checa_descida
@@ -597,44 +600,854 @@ Inicia_vetor_grid:      ;assinala o valor 0 para todos os elementos do vetor gri
 
 	rts
 
+
+
+
+;   --------------- Fim manipulação de vetor ------------
+;   --------------- Manipulação das peças ---------------
 Inicia_peca: ; inicia / chama nova peça
 	push fr
 	push r0
 	push r1
+    push r2
 
+    
     ; Usar a solução, no começo passo o valor inicial apenas para o primeiro elemento,
     ; com base nisso temos ""funções construtoras"" que usam esse 1 elemento para fazer o vetor
     ; assim posso reusar as funçoes construtoras para a hora de girar a peça
 
     ;valor inicial da peça é 180
 
-    ; no futuro fazer um especifico para cada peça
+    ; TO DO: fazer aqui um selecionador aleatorio de que peça sera iniciada
 
 	loadn r0, #Peca
-	loadn r1, #180
-
+	loadn r1, #180     ; assinala posição inicial como 180
     storei r0, r1
-    inc r0
-    inc r1
 
-    storei r0, r1
-    inc r0
-    inc r1
+    loadn r2, #1
+    store Peca_Tipo, r2
 
-    storei r0, r1
-    inc r0
-    inc r1
 
-    storei r0, r1
+    ; ----- a partir daqui seleciona qual func chamar
+
+    loadn r1, #0
+    cmp r1, r2
+    ceq peca_inicia_tipo_0
+
+    loadn r1, #1
+    cmp r1, r2
+    ceq peca_inicia_tipo_1
+
+    loadn r1, #2
+    cmp r1, r2
+    ceq peca_inicia_tipo_2
+
+    loadn r1, #3
+    cmp r1, r2
+    ceq peca_inicia_tipo_3
+
+    loadn r1, #4
+    cmp r1, r2
+    ceq peca_inicia_tipo_4
+
+    loadn r1, #5
+    cmp r1, r2
+    ceq peca_inicia_tipo_5
+
+    loadn r1, #6
+    cmp r1, r2
+    ceq peca_inicia_tipo_6
+
+    loadn r1, #7
+    cmp r1, r2
+    ceq peca_inicia_tipo_7
+
+    loadn r1, #8
+    cmp r1, r2
+    ceq peca_inicia_tipo_8
+
+    loadn r1, #9
+    cmp r1, r2
+    ceq peca_inicia_tipo_9
+
+    loadn r1, #10
+    cmp r1, r2
+    ceq peca_inicia_tipo_10
+
+    loadn r1, #11
+    cmp r1, r2
+    ceq peca_inicia_tipo_11
+
+    loadn r1, #12
+    cmp r1, r2
+    ceq peca_inicia_tipo_12
+
+
+    ; ----- termina a seleção de qual função chamar
+
 
 	pop fr
 	pop r0
 	pop r1
+    pop r2
 
 	rts
 
 
-;   --------------- Fim manipulação de vetor ------------
+Girar_peca:
+    ; escuta se espaço foi precionado
+    ; armazenamos o valor de peça em vetor peça auxiliar
+    ; giramos a peça 
+    ; testa se ha obstaculos 
+    ;   sim => desfaz giro ---> paça posições do auxiliar para peça
+    ;   não, mantem giro e segue
+
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+    push r4
+    push r5
+
+
+    loadn r4, #' '
+    inchar r5
+
+    cmp r4, r5
+    jne Girar_peca_end ; se não for igual ele finaliza a função
+
+
+    call Armazena_peca_vetor_auxiliar ; armazena o vetor peça no auxiliar
+
+    call Apaga_vetor_peca
+
+    call Gira_peca_efetivo
+
+
+    loadn r0, #Peca
+    loadn r4, #0 ; contador
+    loadn r5, #4 ; limite do contador para percorrer peça
+    
+    checaGiro_loop:  ;checa se ta tudo bem com a rotação, se n tiver reverte
+        loadn r2, #Grid
+        loadi r1, r0
+        add r2, r2, r1
+        loadn r1, #1
+        loadi r3, r2
+        cmp r3, r1
+        ceq Armazena_peca_vetor_auxiliar_reverte
+        jeq Girar_peca_end
+        inc r0
+        inc r4
+        cmp r4, r5
+        jne checaGiro_loop
+
+
+    Girar_peca_end: ; encerra a função girar peça
+        call Printa_vetor_peca
+        call Delay_Peca
+
+        pop fr
+        pop r0
+        pop r1
+        pop r2
+        pop r3
+        pop r4
+        pop r5
+
+        rts
+
+    Armazena_peca_vetor_auxiliar:
+        push fr
+        push r0
+        push r1
+        push r2
+        push r3
+        push r4
+
+
+        loadn r0, #Peca
+        loadn r1, #Vetor_peca_aux
+        loadn r2, #0 ; contador
+        loadn r3, #4 ; max do contador
+
+        Armazena_peca_vetor_auxiliar_loop:
+            loadi r4, r0
+            storei r1, r4
+            inc r0
+            inc r1
+            inc r2
+            cmp r2, r3
+            jne Armazena_peca_vetor_auxiliar_loop
+
+        pop fr
+        pop r0
+        pop r1
+        pop r2
+        pop r3
+        pop r4
+        rts
+
+    Armazena_peca_vetor_auxiliar_reverte:
+        push fr
+        push r0
+        push r1
+        push r2
+        push r3
+        push r4
+
+        loadn r0, #Vetor_peca_aux
+        loadn r1, #Peca
+        loadn r2, #0 ; contador
+        loadn r3, #4 ; max do contador
+
+        Armazena_peca_vetor_auxiliar_reverte_loop:
+            loadi r4, r0
+            storei r1, r4
+            inc r0
+            inc r1
+            inc r2
+            cmp r2, r3
+            jne Armazena_peca_vetor_auxiliar_reverte_loop
+
+        pop fr
+        pop r0
+        pop r1
+        pop r2
+        pop r3
+        pop r4
+        rts
+    
+    Gira_peca_efetivo: 
+        ;identifica qual a peça e para qual deve girar 
+        ; 0 == não gira
+        ; 1 <-> 2
+        ;
+        ; 3 <-> 4
+        ;
+        ; 5 -> 6
+        ; |^   |_
+        ; 8 <- 7
+        ;
+        ; 9 -> 10
+        ; |^   |_
+        ;12 <- 11
+
+        push fr
+        push r0
+        push r1
+        push r2
+        push r3
+        push r4
+
+        load r0, Peca_Tipo
+        
+        loadn r1, #0
+        cmp r0, r1
+        jeq Gira_peca_efetivo_fim
+
+
+        ;1->2
+        loadn r1, #1
+        cmp r0, r1
+        ceq peca_inicia_tipo_2
+        jeq Gira_peca_efetivo_fim
+
+    
+        ;2->1
+        loadn r1, #2
+        cmp r0, r1
+        ceq peca_inicia_tipo_1
+        jeq Gira_peca_efetivo_fim
+
+        ;3->4
+        loadn r1, #3
+        cmp r0, r1
+        ceq peca_inicia_tipo_4
+        jeq Gira_peca_efetivo_fim
+
+        ;4->3
+        loadn r1, #4
+        cmp r0, r1
+        ceq peca_inicia_tipo_3
+        jeq Gira_peca_efetivo_fim
+
+        ;5->6
+        loadn r1, #5
+        cmp r0, r1
+        ceq peca_inicia_tipo_6
+        jeq Gira_peca_efetivo_fim
+
+        ;6->7
+        loadn r1, #6
+        cmp r0, r1
+        ceq peca_inicia_tipo_7
+        jeq Gira_peca_efetivo_fim
+
+        ;7->8
+        loadn r1, #7
+        cmp r0, r1
+        ceq peca_inicia_tipo_8
+        jeq Gira_peca_efetivo_fim
+
+        ;8->5
+        loadn r1, #8
+        cmp r0, r1
+        ceq peca_inicia_tipo_5
+        jeq Gira_peca_efetivo_fim
+
+        ;9->10
+        loadn r1, #9
+        cmp r0, r1
+        ceq peca_inicia_tipo_10
+        jeq Gira_peca_efetivo_fim
+
+        ;10->11
+        loadn r1, #10
+        cmp r0, r1
+        ceq peca_inicia_tipo_11
+        jeq Gira_peca_efetivo_fim
+
+        ;11->12
+        loadn r1, #11
+        cmp r0, r1
+        ceq peca_inicia_tipo_12
+        jeq Gira_peca_efetivo_fim
+
+        ;12->9
+        loadn r1, #12
+        cmp r0, r1
+        ceq peca_inicia_tipo_9
+        jeq Gira_peca_efetivo_fim
+
+
+        Gira_peca_efetivo_fim:
+            pop fr
+            pop r0
+            pop r1
+            pop r2
+            pop r3
+            pop r4
+            rts
+
+
+
+
+
+
+; Estou usando como padrão para o inicio das peças a unidade
+; do canto esquerdo inferior
+; Funcionamento:
+; cada função vai pegar a posição inicial do nosso vetor e calcular as outras
+;com base nela
+peca_inicia_tipo_0:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;A A
+    ;A A
+
+    loadn r3, #0
+    store Peca_Tipo, r3
+
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    inc r0
+    dec r1
+    storei r0, r1
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+
+
+peca_inicia_tipo_1:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;A
+    ;A
+    ;A
+    ;A
+
+    loadn r3, #1
+    store Peca_Tipo, r3
+
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    loadn r3, #1
+    store Peca_Tipo, r3
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+
+peca_inicia_tipo_2:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;A A A A
+    
+    loadn r3, #2
+    store Peca_Tipo, r3
+
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    loadn r3, #2
+    store Peca_Tipo, r3
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+
+
+peca_inicia_tipo_3:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;A
+    ;A A
+    ;  A
+
+    loadn r3, #3
+    store Peca_Tipo, r3
+
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    inc r0
+    dec r1
+    storei r0, r1
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+
+
+peca_inicia_tipo_4:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;  A A
+    ;A A
+
+    loadn r3, #4
+    store Peca_Tipo, r3
+      
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+
+
+peca_inicia_tipo_5:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;A
+    ;A 
+    ;A A
+
+    loadn r3, #5
+    store Peca_Tipo, r3
+      
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    inc r0
+    sub r1, r1, r2
+    dec r1
+    storei r0, r1
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+
+
+peca_inicia_tipo_6:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;    A
+    ;A A A 
+    ;
+
+    loadn r3, #6
+    store Peca_Tipo, r3
+      
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+
+peca_inicia_tipo_7:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;A A
+    ;  A
+    ;  A
+
+    loadn r3, #7
+    store Peca_Tipo, r3  
+    
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    inc r0
+    dec r1
+    storei r0, r1
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+
+
+peca_inicia_tipo_8:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;A A A 
+    ;A  
+
+    loadn r3, #8
+    store Peca_Tipo, r3
+      
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+
+peca_inicia_tipo_9:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;A A A 
+    ;  A  
+
+    loadn r3, #9
+    store Peca_Tipo, r3
+      
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    inc r0
+    dec r1
+    dec r1
+    storei r0, r1
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+
+peca_inicia_tipo_10:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;A 
+    ;A A
+    ;A
+
+    loadn r3, #10
+    store Peca_Tipo, r3
+      
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    inc r0
+    sub r1, r1, r2
+    dec r1
+    storei r0, r1
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+
+peca_inicia_tipo_11:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;  A 
+    ;A A A
+    
+    loadn r3, #11
+    store Peca_Tipo, r3
+      
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    inc r0
+    inc r1
+    storei r0, r1
+
+    inc r0
+    sub r1, r1, r2
+    dec r1
+    storei r0, r1
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+    
+
+peca_inicia_tipo_12:
+    push fr
+    push r0
+    push r1
+    push r2
+    push r3
+
+    ;  A 
+    ;A A
+    ;  A
+    
+    loadn r3, #12
+    store Peca_Tipo, r3
+      
+    loadn r0, #Peca
+    loadi r1, r0
+    loadn r2, #40
+
+    inc r0
+    sub r1, r1, r2
+    storei r0, r1
+
+    inc r0
+    dec r1
+    storei r0, r1
+
+    inc r0
+    sub r1, r1, r2
+    inc r1
+    storei r0, r1
+
+    pop fr
+    pop r0
+    pop r1
+    pop r2
+    pop r3
+
+    rts
+
+;   --------------- Fim Manipulação das peças -----------
 
 Delay:
 	push r0 
@@ -988,7 +1801,7 @@ tela1Linha29 : string "                                        "
 tela3Linha0  : string "----------------------------------------"
 tela3linha1  : string "                                        "
 tela3Linha2  : string "                                        "
-tela3Linha3  : string "           @@@@@@@@@@@@@@@@@@           "
+tela3Linha3  : string "           @                @           "
 tela3Linha4  : string "           @                @    OOOO   "
 tela3Linha5  : string "           @                @   OOO@@O  "
 tela3Linha6  : string "           @                @   OOO@@O  "
